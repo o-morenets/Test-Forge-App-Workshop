@@ -1,17 +1,35 @@
 modules:
   jira:adminPage:
-    - key: test-forge-app-workshop-admin-page
-      resource: main
+    - key: admin-page-example-hello-world-admin-page
+      resource: main-admin-page
+      title: Main Admin Page
+      render: native
       resolver:
         function: resolver
+    - key: admin-page-example-hello-world-configure-page
+      resource: main-configure-page
+      title: Admin Configure page example
       render: native
-      title: Test Forge App Workshop Admin Page
+      resolver:
+        function: resolver
+      useAsConfig: true
+    - key: admin-page-example-hello-world-get-started-page
+      resource: main-get-started-page
+      title: Admin Get started page example
+      render: native
+      resolver:
+        function: resolver
+      useAsGetStarted: true
   function:
     - key: resolver
       handler: index.handler
 resources:
-  - key: main
-    path: src/frontend/index.jsx
+  - key: main-admin-page
+    path: src/frontend/main-admin-page.jsx
+  - key: main-configure-page
+    path: src/frontend/main-configure-page.jsx
+  - key: main-get-started-page
+    path: src/frontend/main-get-started-page.jsx
 app:
   runtime:
     name: nodejs22.x
