@@ -1,7 +1,7 @@
 {
-  "name": "jira-service-management-queue-page-ui-kit",
+  "name": "jira-service-management-github-integration",
   "version": "1.1.21",
-  "main": "index.js",
+  "main": "index.ts",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -9,13 +9,16 @@
   },
   "devDependencies": {
     "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@forge/api": "^6.1.1",
     "@forge/bridge": "5.5.0",
+    "@forge/kvs": "^1.0.5",
     "@forge/react": "11.3.0",
     "@forge/resolver": "1.7.0",
+    "@octokit/core": "^7.0.3",
     "react": "^18.2.0"
   }
 }
