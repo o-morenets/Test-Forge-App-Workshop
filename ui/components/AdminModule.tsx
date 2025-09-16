@@ -25,7 +25,7 @@ export const AdminModule = () => {
     setAccessTokenValue(value);
   };
 
-  const handleSetUserData = async () => {
+  const handleSaveUserData = async () => {
     setSavingUserDataLoading(true);
 
     // Reset validation errors
@@ -91,6 +91,7 @@ export const AdminModule = () => {
 
   const handleGetGithubRepos = async () => {
     setIsGithubReposLoading(true);
+    setGithubRepos(null);
     try {
       const response = await getMyGithubRepos();
 
@@ -130,7 +131,7 @@ export const AdminModule = () => {
 
             <Box paddingBlockStart="space.300">
               <LoadingButton
-                onClick={handleSetUserData}
+                onClick={handleSaveUserData}
                 isLoading={isSavingUserDataLoading}
               >
                 Save
