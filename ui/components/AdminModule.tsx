@@ -1,7 +1,8 @@
-import {Box, ErrorMessage, Inline, Label, LoadingButton, RequiredAsterisk, Stack, Text, Textfield} from '@forge/react';
+import {Box, ErrorMessage, Inline, Label, LoadingButton, RequiredAsterisk, Text, Textfield} from '@forge/react';
 import {useState} from "react";
-import {getMyGithubRepos, saveUserData, loadUserData} from "../services";
+import {getMyGithubRepos, getMyJiraIssues, loadUserData, saveUserData} from "../services";
 import {GithubRepos} from "./GithubRepos";
+import {JiraIssues} from "./JiraIssues";
 
 export const AdminModule = () => {
   const [usernameValue, setUsernameValue] = useState<string>();
@@ -14,6 +15,8 @@ export const AdminModule = () => {
   const [loadedAccessToken, setLoadedAccessToken] = useState<string | null>(null);
   const [isGithubReposLoading, setIsGithubReposLoading] = useState(false);
   const [githubRepos, setGithubRepos] = useState<any>(null);
+  const [isJiraLoading, setIsJiraLoading] = useState(false);
+  const [jiraIssues, setJiraIssues] = useState<any>(null);
 
   const handleChangeUsernameValue = (event: any) => {
     const value = event.target.value;
@@ -103,78 +106,106 @@ export const AdminModule = () => {
     }
   };
 
+  const handleGetJiraIssues = async () => {
+    setIsJiraLoading(true);
+    setJiraIssues(null);
+    try {
+      const response = await getMyJiraIssues();
+
+      setJiraIssues(response);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsJiraLoading(false);
+    }
+  };
+
   return (
     <>
-      <Stack>
-        <Box paddingBlockStart='space.500'>
-          <Inline space="space.200" alignBlock="start">
-            <Box>
-              <Label labelFor="storage-github-username">Username <RequiredAsterisk/></Label>
-              <Textfield
-                name="storage-github-username"
-                onChange={handleChangeUsernameValue}
-                value={usernameValue}
-              />
-              {usernameValidationError && <ErrorMessage>{usernameValidationError}</ErrorMessage>}
-            </Box>
+      <Box paddingBlockStart='space.500'>
+        <Inline space="space.200" alignBlock="start">
+          <Box>
+            <Label labelFor="storage-github-username">Username <RequiredAsterisk/></Label>
+            <Textfield
+              name="storage-github-username"
+              onChange={handleChangeUsernameValue}
+              value={usernameValue}
+            />
+            {usernameValidationError && <ErrorMessage>{usernameValidationError}</ErrorMessage>}
+          </Box>
 
-            <Box>
-              <Label labelFor="storage-github-access-token">Access Token <RequiredAsterisk/></Label>
-              <Textfield
-                name="storage-github-access-token"
-                type="password"
-                onChange={handleChangeAccessTokenValue}
-                value={accessTokenValue}
-              />
-              {accessTokenValidationError && <ErrorMessage>{accessTokenValidationError}</ErrorMessage>}
-            </Box>
+          <Box>
+            <Label labelFor="storage-github-access-token">Access Token <RequiredAsterisk/></Label>
+            <Textfield
+              name="storage-github-access-token"
+              type="password"
+              onChange={handleChangeAccessTokenValue}
+              value={accessTokenValue}
+            />
+            {accessTokenValidationError && <ErrorMessage>{accessTokenValidationError}</ErrorMessage>}
+          </Box>
 
+          <Box paddingBlockStart="space.300">
+            <LoadingButton
+              onClick={handleSaveUserData}
+              isLoading={isSavingUserDataLoading}
+            >
+              Save
+            </LoadingButton>
+          </Box>
+
+          <Box paddingBlockStart="space.300">
+            <LoadingButton
+              onClick={handleLoadUserData}
+              isLoading={isLoadingUserData}
+              appearance="subtle"
+            >
+              Load User Data
+            </LoadingButton>
+          </Box>
+
+          {(loadedUsername || loadedAccessToken) && (
             <Box paddingBlockStart="space.300">
-              <LoadingButton
-                onClick={handleSaveUserData}
-                isLoading={isSavingUserDataLoading}
-              >
-                Save
-              </LoadingButton>
+              <Text as="strong">Loaded Data:</Text>
+              {loadedUsername && <Text>Username: {loadedUsername}</Text>}
+              {loadedAccessToken && (
+                <Text>
+                  Access Token: {loadedAccessToken.length > 10
+                  ? `${loadedAccessToken.slice(0, 5)}*****${loadedAccessToken.slice(-5)}`
+                  : loadedAccessToken
+                }
+                </Text>
+              )}
             </Box>
+          )}
+        </Inline>
+      </Box>
 
-            <Box paddingBlockStart="space.300">
-              <LoadingButton
-                onClick={handleLoadUserData}
-                isLoading={isLoadingUserData}
-                appearance="subtle"
-              >
-                Load User Data
-              </LoadingButton>
-            </Box>
-
-            {(loadedUsername || loadedAccessToken) && (
-               <Box paddingBlockStart="space.300">
-                 <Text as="strong">Loaded Data:</Text>
-                 {loadedUsername && <Text>Username: {loadedUsername}</Text>}
-                 {loadedAccessToken && (
-                   <Text>
-                     Access Token: {loadedAccessToken.length > 10 
-                       ? `${loadedAccessToken.slice(0, 5)}*****${loadedAccessToken.slice(-5)}`
-                       : loadedAccessToken
-                     }
-                   </Text>
-                 )}
-               </Box>
-            )}
-          </Inline>
+      <Inline>
+        <Box backgroundColor='color.background.discovery'>
+          <LoadingButton
+            isLoading={isGithubReposLoading}
+            onClick={() => handleGetGithubRepos()}
+          >
+            My Github Repositories
+          </LoadingButton>
+          <Box paddingBlockStart='space.500'>
+            <GithubRepos githubRepos={githubRepos}/>
+          </Box>
         </Box>
 
-        <LoadingButton
-          isLoading={isGithubReposLoading}
-          onClick={() => handleGetGithubRepos()}
-        >
-          My Github Repositories
-        </LoadingButton>
-        <Box paddingBlockStart='space.500'>
-          <GithubRepos githubRepos={githubRepos}/>
+        <Box backgroundColor='color.background.success'>
+          <LoadingButton
+            isLoading={isJiraLoading}
+            onClick={() => handleGetJiraIssues()}
+          >
+            My Jira Issues
+          </LoadingButton>
+          <Box paddingBlockStart='space.500'>
+            <JiraIssues jiraIssues={jiraIssues}/>
+          </Box>
         </Box>
-      </Stack>
+      </Inline>
     </>
   )
 }
