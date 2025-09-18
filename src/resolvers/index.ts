@@ -1,6 +1,7 @@
 import Resolver from '@forge/resolver';
 import {loadUserData, saveUserData} from "../services/storage";
 import {getMyGithubRepos, mergePullRequest} from "../services/github";
+import {getJiraIssue} from "../services/jira";
 
 const resolver = new Resolver();
 
@@ -33,6 +34,11 @@ resolver.define("mergePullRequest", async (req) => {
   }
   
   return mergePullRequest(owner, repo, pullNumber, accessToken.data);
+});
+
+resolver.define("getJiraIssue", async (req) => {
+  const {key} = req.payload;
+  return getJiraIssue(key);
 });
 
 export const handler: any = resolver.getDefinitions();

@@ -1,4 +1,4 @@
-import {invoke, requestJira} from "@forge/bridge";
+import {invoke} from "@forge/bridge";
 
 type ResolverResponse<T = any> = {
   success: boolean;
@@ -29,16 +29,4 @@ export const mergePullRequest = (owner: string, repo: string, pullNumber: number
     repo,
     pullNumber,
   });
-};
-
-export const getMyJiraIssues = async (key: string): Promise<ResolverResponse> => {
-  const response = await requestJira(`/rest/api/3/issue/${key}`);
-  const jsonData = await response.json();
-
-  console.log('Jira issue:', jsonData);
-
-  return {
-    success: true,
-    data: jsonData
-  };
 };
