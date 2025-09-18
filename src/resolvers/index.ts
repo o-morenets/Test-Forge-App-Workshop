@@ -1,6 +1,6 @@
 import Resolver from '@forge/resolver';
 import {loadUserData, saveUserData} from "../services/storage";
-import {getMyGithubRepos} from "../services/github";
+import {getMyGithubRepos, mergePullRequest} from "../services/github";
 
 const resolver = new Resolver();
 
@@ -18,6 +18,21 @@ resolver.define("loadUserData", async (req) => {
 
 resolver.define("getMyGithubRepos", async (req) => {
   return getMyGithubRepos(req);
-})
+});
+
+resolver.define("mergePullRequest", async (req) => {
+  const {owner, repo, pullNumber} = req.payload;
+  
+  const accessToken = await loadUserData("access-token-field");
+  
+  if (!accessToken.success || !accessToken.data || typeof accessToken.data !== 'string') {
+    return {
+      success: false,
+      error: "Access token not found in storage"
+    };
+  }
+  
+  return mergePullRequest(owner, repo, pullNumber, accessToken.data);
+});
 
 export const handler: any = resolver.getDefinitions();
