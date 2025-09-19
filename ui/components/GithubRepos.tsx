@@ -49,17 +49,18 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
   }
 
   return (
-    <Box paddingBlockStart="space.100">
+    <Box paddingBlockStart="space.300">
       <Text>
         <Link href={repo.html_url} openNewTab>
           <Strong>{repo.name}</Strong>
         </Link>
-        {repo.language && <> <Lozenge appearance="new" isBold>{repo.language}</Lozenge></>}{repo.description && ` - ${repo.description}`}
+        {repo.language && <> <Lozenge appearance="new">{repo.language}</Lozenge></>}{repo.description && ` - ${repo.description}`}
       </Text>
       
       <Box paddingInlineStart="space.200" paddingBlockStart="space.050">
         <Text size="small">Pull Requests:</Text>
-        <Stack space="space.050">
+        <Box paddingBlockStart="space.100">
+          <Stack space="space.050">
           {visiblePRs.map((pr: any) => {
             const isMergeable = pr.mergeable !== false && pr.mergeable_state !== 'dirty';
             const isLoading = mergingPRs.has(pr.number);
@@ -88,6 +89,7 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
             );
           })}
           </Stack>
+        </Box>
       </Box>
       
     </Box>

@@ -4,7 +4,7 @@ import {getGithubRepos, loadAccessToken, saveAccessToken} from "../services";
 import {GithubRepos} from "./GithubRepos";
 
 export const AdminModule = () => {
-  const [accessTokenValue, setAccessTokenValue] = useState<string>();
+  const [accessTokenValue, setAccessTokenValue] = useState<string>('');
   const [accessTokenValidationError, setAccessTokenValidationError] = useState<string | null>(null);
   const [isSavingAccessTokenLoading, setSavingAccessTokenLoading] = useState(false);
   const [isLoadingAccessToken, setIsLoadingAccessToken] = useState(false);
@@ -97,7 +97,6 @@ export const AdminModule = () => {
             <LoadingButton
               onClick={handleLoadAccessToken}
               isLoading={isLoadingAccessToken}
-              appearance="subtle"
             >
               Load Access Token
             </LoadingButton>
@@ -116,7 +115,7 @@ export const AdminModule = () => {
         </Inline>
       </Box>
 
-      <Box padding={'space.500'}>
+      <Box paddingBlockStart={'space.300'} paddingBlockEnd={'space.300'}>
         <LoadingButton appearance="primary"
           isLoading={isGithubReposLoading}
           onClick={() => handleGetGithubRepos()}

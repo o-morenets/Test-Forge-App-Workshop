@@ -1,26 +1,5 @@
 import api, {route} from "@forge/api";
 
-// export const getJiraIssue = async (key: string) => {
-//   try {
-//     const response = await api.asUser().requestJira(route`/rest/api/3/issue/${key}`);
-//     const jsonData = await response.json();
-//
-//     console.log('Jira issue:', jsonData);
-//
-//     return {
-//       success: true,
-//       data: jsonData
-//     };
-//   } catch (error) {
-//     console.error('Error fetching Jira issue:', error);
-//
-//     return {
-//       success: false,
-//       error: `Error fetching Jira issue ${key}`
-//     };
-//   }
-// };
-
 export const changeJiraIssueStatusToDoneAsApp = async (key: string) => {
   try {
     // Get issue details using app context
