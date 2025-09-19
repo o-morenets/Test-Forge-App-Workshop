@@ -6,16 +6,14 @@ modules:
         function: resolver
       render: native
       title: Admin Page
-      sections:
-        - header: Github
-          pages:
-            - title: User credentials
-              route: user-credentials
-            - title: Repositories list
-              route: repositories-list
   function:
     - key: resolver
       handler: index.handler
+    - key: webhook-handler
+      handler: index.webhookHandler
+  webtrigger:
+    - key: github-webhook-handler
+      function: webhook-handler
 resources:
   - key: main
     path: ui/index.tsx
@@ -29,7 +27,7 @@ permissions:
   scopes:
     - storage:app
     - read:jira-work
-    - read:servicedesk-request
+    - write:jira-work
   external:
     fetch:
       backend:

@@ -1,6 +1,6 @@
 import {Box, ErrorMessage, Inline, Label, LoadingButton, RequiredAsterisk, Text, Textfield} from '@forge/react';
 import {useState} from "react";
-import {getMyGithubRepos, loadUserData, saveAccessToken} from "../services";
+import {getGithubRepos, loadAccessToken, saveAccessToken} from "../services";
 import {GithubRepos} from "./GithubRepos";
 
 export const AdminModule = () => {
@@ -40,7 +40,7 @@ export const AdminModule = () => {
     setIsLoadingAccessToken(true);
 
     try {
-      const tokenResult = await loadUserData("access-token-field");
+      const tokenResult = await loadAccessToken("access-token-field");
 
       if (tokenResult && (tokenResult as any).success) {
         setLoadedAccessToken((tokenResult as any).data || "Not found");
@@ -60,7 +60,7 @@ export const AdminModule = () => {
     setGithubRepos(null);
 
     try {
-      const response = await getMyGithubRepos();
+      const response = await getGithubRepos();
       setGithubRepos(response.data);
     } catch (e) {
       console.error(e);
@@ -68,7 +68,6 @@ export const AdminModule = () => {
       setIsGithubReposLoading(false);
     }
   }
-
 
   return (
     <>
@@ -117,12 +116,12 @@ export const AdminModule = () => {
         </Inline>
       </Box>
 
-      <Box backgroundColor='color.background.discovery'>
-        <LoadingButton
+      <Box padding={'space.500'}>
+        <LoadingButton appearance="primary"
           isLoading={isGithubReposLoading}
           onClick={() => handleGetGithubRepos()}
         >
-          My Github Repositories
+          Github Repositories
         </LoadingButton>
         <Box paddingBlockStart='space.500'>
           <GithubRepos githubRepos={githubRepos}/>

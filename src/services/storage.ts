@@ -1,6 +1,6 @@
 import kvs from "@forge/kvs";
 
-export const saveUserData = async (key: string, value: string) => {
+export const saveAccessToken = async (key: string, value: string) => {
   try {
     await kvs.setSecret(key, value);
 
@@ -16,7 +16,7 @@ export const saveUserData = async (key: string, value: string) => {
   }
 };
 
-export const loadUserData = async (key: string) => {
+export const loadAccessToken = async (key: string) => {
   try {
     const value = await kvs.getSecret(key);
 

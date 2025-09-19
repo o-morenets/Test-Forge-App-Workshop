@@ -1,4 +1,4 @@
-import {Text, Box, Lozenge, Strong, Link, Stack, Button, Inline} from '@forge/react';
+import {Text, Box, Lozenge, Strong, Link, Stack, Button, Inline, Code} from '@forge/react';
 import { useState } from 'react';
 import { mergePullRequest } from '../services';
 
@@ -12,6 +12,7 @@ interface RepoItemProps {
 
 const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
   const [mergingPRs, setMergingPRs] = useState<Set<number>>(new Set());
+  const [hiddenPRs, setHiddenPRs] = useState<Set<number>>(new Set());
 
   const handleMergePR = async (pr: any) => {
     setMergingPRs(prev => new Set(prev.add(pr.number)));
@@ -20,7 +21,9 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
       const response = await mergePullRequest(repo.owner.login, repo.name, pr.number);
       if (response.success) {
         console.log('PR merged successfully:', pr.number);
-        // You might want to refresh the data here
+
+        // Hide the PR immediately after successful merge
+        setHiddenPRs(prev => new Set(prev.add(pr.number)));
       } else {
         console.error('Failed to merge PR:', response.error);
       }
@@ -35,6 +38,16 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
     }
   };
 
+  // Filter out hidden PRs and already merged PRs
+  const visiblePRs = repo.pullRequests ? repo.pullRequests.filter((pr: any) => 
+    !hiddenPRs.has(pr.number) && !pr.isMerged
+  ) : [];
+
+  // Hide entire repo if no visible PRs remain
+  if (!visiblePRs || visiblePRs.length === 0) {
+    return null;
+  }
+
   return (
     <Box paddingBlockStart="space.100">
       <Text>
@@ -44,29 +57,38 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
         {repo.language && <> <Lozenge appearance="new" isBold>{repo.language}</Lozenge></>}{repo.description && ` - ${repo.description}`}
       </Text>
       
-      {repo.pullRequests && repo.pullRequests.length > 0 && (
-        <Box paddingInlineStart="space.200" paddingBlockStart="space.050">
-          <Text size="small">Pull Requests:</Text>
-          <Stack space="space.050">
-            {repo.pullRequests.map((pr: any) => (
-              <Inline key={pr.id} space="space.100" alignBlock="center">
-                <Link href={pr.html_url} openNewTab>
-                  <Lozenge appearance="inprogress">{pr.title}</Lozenge>
-                </Link>
-                {!pr.isMerged && (
-                  <Button 
-                    appearance="primary"
-                    onClick={() => handleMergePR(pr)}
-                    isDisabled={mergingPRs.has(pr.number)}
-                  >
-                    {mergingPRs.has(pr.number) ? 'Merging...' : 'Merge'}
-                  </Button>
-                )}
+      <Box paddingInlineStart="space.200" paddingBlockStart="space.050">
+        <Text size="small">Pull Requests:</Text>
+        <Stack space="space.050">
+          {visiblePRs.map((pr: any) => {
+            const isMergeable = pr.mergeable !== false && pr.mergeable_state !== 'dirty';
+            const isLoading = mergingPRs.has(pr.number);
+            
+            return (
+            <Inline key={pr.id} space="space.100" alignBlock="center" shouldWrap>
+              <Button
+                spacing="compact"
+                appearance={isMergeable ? "primary" : "warning"}
+                onClick={() => handleMergePR(pr)}
+                isDisabled={isLoading || !isMergeable}
+              >
+                {isLoading ? 'Merging...' : isMergeable ? 'Merge' : 'Conflicts'}
+              </Button>
+              <Link href={pr.html_url} openNewTab>
+                {pr.title}
+              </Link>
+              <Link href={`${repo.html_url}/tree/${pr.head?.ref || 'main'}`} openNewTab>
+                <Code>{pr.head?.ref || 'unknown'}</Code>
+              </Link>
+              <Text size="small">→</Text>
+              <Link href={`${repo.html_url}/tree/${pr.base?.ref || 'main'}`} openNewTab>
+                <Code>{pr.base?.ref || 'unknown'}</Code>
+              </Link>
               </Inline>
-            ))}
+            );
+          })}
           </Stack>
-        </Box>
-      )}
+      </Box>
       
     </Box>
   );

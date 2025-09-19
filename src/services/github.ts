@@ -1,9 +1,9 @@
 import { Request } from "@forge/resolver";
 import { Octokit } from "@octokit/core";
-import { loadUserData } from "./storage";
+import { loadAccessToken } from "./storage";
 
-export const getMyGithubRepos = async (req: Request) => {
-  const accessToken = await loadUserData("access-token-field");
+export const getGithubRepos = async (req: Request) => {
+  const accessToken = await loadAccessToken("access-token-field");
   
   if (!accessToken.success || !accessToken.data || typeof accessToken.data !== 'string') {
     return {
@@ -38,9 +38,29 @@ export const getMyGithubRepos = async (req: Request) => {
             }
           });
           
+          // Fetch detailed information for each PR to get mergeability status
+          const detailedPRs = await Promise.all(
+            prResponse.data.map(async (pr: any) => {
+              try {
+                const detailedPR = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+                  owner: repo.owner.login,
+                  repo: repo.name,
+                  pull_number: pr.number,
+                  headers: {
+                    'X-GitHub-Api-Version': '2022-11-28'
+                  }
+                });
+                return detailedPR.data;
+              } catch (error) {
+                console.error(`Error fetching detailed PR ${pr.number}:`, error);
+                return pr; // Return basic PR data if detailed fetch fails
+              }
+            })
+          );
+          
           return {
             ...repo,
-            pullRequests: prResponse.data
+            pullRequests: detailedPRs
           };
         } catch (error) {
           console.error(`Error fetching PRs for ${repo.name}:`, error);
@@ -53,10 +73,10 @@ export const getMyGithubRepos = async (req: Request) => {
     );
 
     // Filter repos to only include those with PRs containing key format (e.g., ABCDE-12345)
-    const keyPattern = /[A-Z]{3,5}-\d{1,5}/;
+    const keyPattern = /([A-Z]+-\d+)/;
     const filteredRepos = reposWithPRs.filter(repo => 
       repo.pullRequests.some((pr: any) => 
-        keyPattern.test(pr.title) || keyPattern.test(pr.body || '')
+        keyPattern.test(pr.title) || keyPattern.test(pr.head?.ref || '')
       )
     );
 
@@ -66,7 +86,7 @@ export const getMyGithubRepos = async (req: Request) => {
         const prsWithMergeStatus = await Promise.all(
           repo.pullRequests.map(async (pr: any) => {
             // Only check merge status for PRs that match the key pattern
-            if (keyPattern.test(pr.title) || keyPattern.test(pr.body || '')) {
+            if (keyPattern.test(pr.title) || keyPattern.test(pr.head?.ref || '')) {
               try {
                 const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
                   owner: repo.owner.login,
@@ -94,8 +114,6 @@ export const getMyGithubRepos = async (req: Request) => {
       })
     );
 
-    console.log('Repos with PRs containing keys:', JSON.stringify(filteredReposWithMergeStatus, null, 2));
-
     return {
       success: true,
       data: filteredReposWithMergeStatus,
@@ -110,9 +128,19 @@ export const getMyGithubRepos = async (req: Request) => {
   }
 };
 
-export const mergePullRequest = async (owner: string, repo: string, pullNumber: number, token: string) => {
+export const mergePullRequest = async (owner: string, repo: string, pullNumber: number) => {
+  const accessToken = await loadAccessToken("access-token-field");
+
+  if (!accessToken.success || !accessToken.data || typeof accessToken.data !== 'string') {
+    return {
+      success: false,
+      error: "Access token not found in storage"
+    };
+  }
+
+
   const octokit = new Octokit({
-    auth: token
+    auth: accessToken.data
   });
 
   try {
@@ -126,6 +154,8 @@ export const mergePullRequest = async (owner: string, repo: string, pullNumber: 
         'X-GitHub-Api-Version': '2022-11-28'
       }
     });
+
+    console.log(response);
 
     return {
       success: true,

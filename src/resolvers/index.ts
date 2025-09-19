@@ -1,44 +1,36 @@
 import Resolver from '@forge/resolver';
-import {loadUserData, saveUserData} from "../services/storage";
-import {getMyGithubRepos, mergePullRequest} from "../services/github";
-import {getJiraIssue} from "../services/jira";
+import {loadAccessToken, saveAccessToken} from "../services/storage";
+import {getGithubRepos, mergePullRequest} from "../services/github";
+// import {getJiraIssue} from "../services/jira";
 
 const resolver = new Resolver();
 
-resolver.define("saveUserData", async (req) => {
+resolver.define("saveAccessToken", async (req) => {
   const {key, value} = req.payload;
 
-  return saveUserData(key, value);
+  return saveAccessToken(key, value);
 });
 
-resolver.define("loadUserData", async (req) => {
+resolver.define("loadAccessToken", async (req) => {
   const {key} = req.payload;
 
-  return loadUserData(key);
+  return loadAccessToken(key);
 });
 
-resolver.define("getMyGithubRepos", async (req) => {
-  return getMyGithubRepos(req);
+resolver.define("getGithubRepos", async (req) => {
+  return getGithubRepos(req);
 });
 
 resolver.define("mergePullRequest", async (req) => {
   const {owner, repo, pullNumber} = req.payload;
   
-  const accessToken = await loadUserData("access-token-field");
-  
-  if (!accessToken.success || !accessToken.data || typeof accessToken.data !== 'string') {
-    return {
-      success: false,
-      error: "Access token not found in storage"
-    };
-  }
-  
-  return mergePullRequest(owner, repo, pullNumber, accessToken.data);
+  return mergePullRequest(owner, repo, pullNumber);
 });
 
-resolver.define("getJiraIssue", async (req) => {
-  const {key} = req.payload;
-  return getJiraIssue(key);
-});
+// resolver.define("getJiraIssue", async (req) => {
+//   const {key} = req.payload;
+//
+//   return getJiraIssue(key);
+// });
 
 export const handler: any = resolver.getDefinitions();

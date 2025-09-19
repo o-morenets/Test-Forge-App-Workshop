@@ -7,20 +7,20 @@ type ResolverResponse<T = any> = {
 };
 
 export const saveAccessToken = (key: string, value: string): Promise<ResolverResponse> => {
-  return invoke("saveUserData", {
+  return invoke("saveAccessToken", {
     key,
     value,
   });
 };
 
-export const loadUserData = (key: string): Promise<ResolverResponse> => {
-  return invoke("loadUserData", {
+export const loadAccessToken = (key: string): Promise<ResolverResponse> => {
+  return invoke("loadAccessToken", {
     key,
   });
 };
 
-export const getMyGithubRepos = (): Promise<ResolverResponse> => {
-  return invoke("getMyGithubRepos", {});
+export const getGithubRepos = (): Promise<ResolverResponse> => {
+  return invoke("getGithubRepos", {});
 };
 
 export const mergePullRequest = (owner: string, repo: string, pullNumber: number): Promise<ResolverResponse> => {
