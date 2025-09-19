@@ -80,43 +80,9 @@ export const getGithubRepos = async (req: Request) => {
       )
     );
 
-    // Check merge status only for filtered PRs
-    const filteredReposWithMergeStatus = await Promise.all(
-      filteredRepos.map(async (repo: any) => {
-        const prsWithMergeStatus = await Promise.all(
-          repo.pullRequests.map(async (pr: any) => {
-            // Only check merge status for PRs that match the key pattern
-            if (keyPattern.test(pr.title) || keyPattern.test(pr.head?.ref || '')) {
-              try {
-                const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
-                  owner: repo.owner.login,
-                  repo: repo.name,
-                  pull_number: pr.number,
-                  headers: {
-                    'X-GitHub-Api-Version': '2022-11-28'
-                  }
-                });
-                // Only status 204 means PR is merged
-                return { ...pr, isMerged: response.status === 204 };
-              } catch (error) {
-                // Any error means PR is not merged
-                return { ...pr, isMerged: false };
-              }
-            }
-            return pr; // Return PR without merge status if it doesn't match pattern
-          })
-        );
-        
-        return {
-          ...repo,
-          pullRequests: prsWithMergeStatus
-        };
-      })
-    );
-
     return {
       success: true,
-      data: filteredReposWithMergeStatus,
+      data: filteredRepos,
     }
   } catch (error) {
     console.error(error);
@@ -137,7 +103,6 @@ export const mergePullRequest = async (owner: string, repo: string, pullNumber: 
       error: "Access token not found in storage"
     };
   }
-
 
   const octokit = new Octokit({
     auth: accessToken.data
