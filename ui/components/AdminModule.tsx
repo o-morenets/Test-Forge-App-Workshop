@@ -1,4 +1,4 @@
-import {Box, ErrorMessage, Inline, Label, LoadingButton, RequiredAsterisk, Text, Textfield} from '@forge/react';
+import {Box, Inline, Label, LoadingButton, RequiredAsterisk, Text, Textfield} from '@forge/react';
 import {useState} from "react";
 import {getGithubRepos, loadAccessToken, saveAccessToken} from "../services";
 import {GithubRepos} from "./GithubRepos";
@@ -15,6 +15,10 @@ export const AdminModule = () => {
   const handleChangeAccessTokenValue = (event: any) => {
     const value = event.target.value;
     setAccessTokenValue(value);
+    // Clear validation error when user starts typing
+    if (accessTokenValidationError) {
+      setAccessTokenValidationError(null);
+    }
   }
 
   const handleSaveAccessToken = async () => {
@@ -29,6 +33,10 @@ export const AdminModule = () => {
 
     try {
       await saveAccessToken("access-token-field", accessTokenValue!);
+      // Clear the input field and loaded token after successful save
+      setAccessTokenValue("");
+      setLoadedAccessToken("");
+      setAccessTokenValidationError(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -80,8 +88,8 @@ export const AdminModule = () => {
               type="password"
               onChange={handleChangeAccessTokenValue}
               value={accessTokenValue}
+              isInvalid={accessTokenValidationError !== null}
             />
-            {accessTokenValidationError && <ErrorMessage>{accessTokenValidationError}</ErrorMessage>}
           </Box>
 
           <Box paddingBlockStart="space.300">
@@ -123,7 +131,7 @@ export const AdminModule = () => {
           Github Repositories
         </LoadingButton>
         <Box paddingBlockStart='space.500'>
-          <GithubRepos githubRepos={githubRepos}/>
+          <GithubRepos githubRepos={githubRepos} onReposUpdate={setGithubRepos}/>
         </Box>
       </Box>
     </>

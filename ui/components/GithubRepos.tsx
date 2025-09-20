@@ -1,9 +1,10 @@
 import {Text, Box, Lozenge, Strong, Link, Stack, Button, Inline, Code} from '@forge/react';
-import { useState } from 'react';
-import { mergePullRequest } from '../services';
+import { useState, useEffect } from 'react';
+import { mergePullRequest, getGithubRepos } from '../services';
 
 interface GithubReposProps {
   githubRepos?: any;
+  onReposUpdate?: (repos: any) => void;
 }
 
 interface RepoItemProps {
@@ -40,7 +41,7 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
 
   // Filter out hidden PRs and already merged PRs
   const visiblePRs = repo.pullRequests ? repo.pullRequests.filter((pr: any) => 
-    !hiddenPRs.has(pr.number) && !pr.isMerged
+    !hiddenPRs.has(pr.number) && !pr.merged
   ) : [];
 
   // Hide entire repo if no visible PRs remain
@@ -62,18 +63,22 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
         <Box paddingBlockStart="space.100">
           <Stack space="space.050">
           {visiblePRs.map((pr: any) => {
-            const isMergeable = pr.mergeable !== false && pr.mergeable_state !== 'dirty';
+            const isMergeable = pr.mergeable === true && pr.mergeable_state !== 'dirty';
+            const isCalculating = pr.mergeable === null;
             const isLoading = mergingPRs.has(pr.number);
+            
+            // Debug logging
+            console.log(`PR #${pr.number}: mergeable=${pr.mergeable}, state=${pr.mergeable_state}, merged=${pr.merged}`);
             
             return (
             <Inline key={pr.id} space="space.100" alignBlock="center" shouldWrap>
               <Button
                 spacing="compact"
-                appearance={isMergeable ? "primary" : "warning"}
+                appearance={isMergeable ? "primary" : isCalculating ? "default" : "warning"}
                 onClick={() => handleMergePR(pr)}
                 isDisabled={isLoading || !isMergeable}
               >
-                {isLoading ? 'Merging...' : isMergeable ? 'Merge' : 'Conflicts'}
+                {isLoading ? 'Merging...' : isMergeable ? 'Merge' : isCalculating ? 'Calculating...' : 'Conflicts'}
               </Button>
               <Link href={pr.html_url} openNewTab>
                 {pr.title}
@@ -96,7 +101,33 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo }) => {
   );
 };
 
-export const GithubRepos: React.FC<GithubReposProps> = ({ githubRepos }) => {
+export const GithubRepos: React.FC<GithubReposProps> = ({ githubRepos, onReposUpdate }) => {
+  useEffect(() => {
+    if (!githubRepos || !onReposUpdate) return;
+
+    // Check if any PRs are in calculating state
+    const hasCalculatingPRs = Array.isArray(githubRepos) && githubRepos.some((repo: any) =>
+      repo.pullRequests && repo.pullRequests.some((pr: any) => pr.mergeable === null)
+    );
+
+    if (!hasCalculatingPRs) return;
+
+    // Set up polling for calculating PRs
+    const interval = setInterval(async () => {
+      try {
+        console.log('Polling for updated PR status...');
+        const response = await getGithubRepos();
+        if (response.success) {
+          onReposUpdate(response.data);
+        }
+      } catch (error) {
+        console.error('Error polling PR status:', error);
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [githubRepos, onReposUpdate]);
+
   if (!githubRepos) {
     return null;
   }
