@@ -1,17 +1,34 @@
 import api, {route} from "@forge/api";
 
-export const changeJiraIssueStatusToDoneAsApp = async (key: string) => {
+export const getJiraIssue = async (key: string) => {
   try {
-    // Get issue details using app context
     const response = await api.asApp().requestJira(route`/rest/api/3/issue/${key}`);
-    const jiraIssue = await response.json();
+    const jsonData = await response.json();
 
-    if (!jiraIssue) {
+    return {
+      success: true,
+      data: jsonData
+    };
+  } catch (error) {
+    console.error('Error fetching Jira issue:', error);
+
+    return {
+      success: false,
+      error: `Error fetching Jira issue ${key}`
+    };
+  }
+};
+
+export const changeJiraIssueStatusToDone = async (key: string) => {
+  try {
+    const jiraIssueResult = await getJiraIssue(key);
+
+    if (!jiraIssueResult.success) {
       console.error(`Jira issue ${key} not found.`);
       return;
     }
 
-    console.log('Jira issue found:', jiraIssue.key);
+    console.log('Jira issue found:', jiraIssueResult.data.key);
 
     // Get available transitions using app context
     const transitionsRes = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/transitions`);

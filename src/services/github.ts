@@ -32,6 +32,7 @@ export const getGithubRepos = async (req: Request) => {
           const prResponse = await octokit.request('GET /repos/{owner}/{repo}/pulls', {
             owner: repo.owner.login,
             repo: repo.name,
+            state: 'all', // Include both open and closed (merged) PRs
             per_page: 50,
             headers: {
               'X-GitHub-Api-Version': '2022-11-28'

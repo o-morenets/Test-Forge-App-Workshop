@@ -30,3 +30,9 @@ export const mergePullRequest = (owner: string, repo: string, pullNumber: number
     pullNumber,
   });
 };
+
+export const getJiraIssue = (key: string): Promise<ResolverResponse> => {
+  return invoke("getJiraIssue", {
+    key,
+  });
+};

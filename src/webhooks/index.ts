@@ -1,4 +1,4 @@
-import {changeJiraIssueStatusToDoneAsApp} from "../services/jira";
+import {changeJiraIssueStatusToDone} from "../services/jira";
 
 export const webhookHandler = async (event: any, context: any) => {
   const payload = JSON.parse(event.body);
@@ -9,7 +9,7 @@ export const webhookHandler = async (event: any, context: any) => {
     const jiraIssueKey = (prTitle.match(/([A-Z]+-\d+)/) || prBranch.match(/([A-Z]+-\d+)/))?.[1] || null;
 
     if (jiraIssueKey) {
-      await changeJiraIssueStatusToDoneAsApp(jiraIssueKey);
+      await changeJiraIssueStatusToDone(jiraIssueKey);
     } else {
       console.log('No Jira key found in PR title or branch name.');
     }

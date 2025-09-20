@@ -1,6 +1,7 @@
 import Resolver from '@forge/resolver';
 import {loadAccessToken, saveAccessToken} from "../services/storage";
 import {getGithubRepos, mergePullRequest} from "../services/github";
+import {getJiraIssue} from "../services/jira";
 
 const resolver = new Resolver();
 
@@ -24,6 +25,12 @@ resolver.define("mergePullRequest", async (req) => {
   const {owner, repo, pullNumber} = req.payload;
   
   return mergePullRequest(owner, repo, pullNumber);
+});
+
+resolver.define("getJiraIssue", async (req) => {
+  const {key} = req.payload;
+  
+  return getJiraIssue(key);
 });
 
 export const handler: any = resolver.getDefinitions();
