@@ -1,6 +1,6 @@
-import {Text, Box, Lozenge, Strong, Link, Stack, Button, Inline, Code} from '@forge/react';
-import { useState, useEffect } from 'react';
-import { mergePullRequest, getGithubRepos, getJiraIssue } from '../services';
+import {Box, Code, Inline, Link, LoadingButton, Lozenge, Stack, Strong, Text} from '@forge/react';
+import {useEffect, useState} from 'react';
+import {getGithubRepos, getJiraIssue, mergePullRequest} from '../services';
 
 interface GithubReposProps {
   githubRepos?: any;
@@ -9,17 +9,16 @@ interface GithubReposProps {
 
 interface RepoItemProps {
   repo: any;
-  onMergeComplete?: () => void;
-  onJiraRefreshNeeded?: () => void;
+  onReposUpdate?: (repos: any) => void;
 }
 
-const RepoItem: React.FC<RepoItemProps> = ({ repo, onMergeComplete, onJiraRefreshNeeded }) => {
+const RepoItem: React.FC<RepoItemProps> = ({repo, onReposUpdate}) => {
   const [mergingPRs, setMergingPRs] = useState<Set<number>>(new Set());
   const [mergedPRs, setMergedPRs] = useState<Set<number>>(new Set());
   const [lastMergedPR, setLastMergedPR] = useState<number | null>(null);
   const [jiraIssues, setJiraIssues] = useState<Map<string, any>>(new Map());
 
-  // Show all PRs (no filtering needed)
+  // Show all PRs including those with conflicts
   const visiblePRs = repo.pullRequests || [];
 
   // Extract Jira key from PR title or branch name
@@ -33,14 +32,21 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo, onMergeComplete, onJiraRefres
   // Fetch Jira issue details
   const fetchJiraIssue = async (jiraKey: string) => {
     if (jiraIssues.has(jiraKey)) return; // Already fetched
-    
+
     try {
       const response = await getJiraIssue(jiraKey);
       if (response.success) {
         setJiraIssues(prev => new Map(prev.set(jiraKey, response.data)));
+      } else {
+
+        // Mark as not found so we don't keep trying to fetch it
+        setJiraIssues(prev => new Map(prev.set(jiraKey, null)));
       }
     } catch (error) {
       console.error(`Error fetching Jira issue ${jiraKey}:`, error);
+
+      // Mark as not found on error as well
+      setJiraIssues(prev => new Map(prev.set(jiraKey, null)));
     }
   };
 
@@ -54,37 +60,59 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo, onMergeComplete, onJiraRefres
     });
   }, [visiblePRs]);
 
-  // Refresh Jira issues when merges complete
-  const refreshJiraIssues = () => {
-    // Clear cached Jira issues to force refresh
-    setJiraIssues(new Map());
-    // Re-fetch all Jira issues
-    visiblePRs.forEach((pr: any) => {
-      const jiraKey = extractJiraKey(pr);
-      if (jiraKey) {
-        fetchJiraIssue(jiraKey);
-      }
+  // Refresh specific Jira issue when merge completes
+  const refreshJiraIssue = (jiraKey: string) => {
+    if (!jiraKey) return;
+
+    // Remove the specific issue from cache to force refresh
+    setJiraIssues(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(jiraKey);
+      return newMap;
     });
+
+    // Re-fetch only this specific Jira issue
+    fetchJiraIssue(jiraKey);
   };
+
 
   const handleMergePR = async (pr: any) => {
     setMergingPRs(prev => new Set(prev.add(pr.number)));
-    
+
     try {
       const response = await mergePullRequest(repo.owner.login, repo.name, pr.number);
       if (response.success) {
         console.log('PR merged successfully:', pr.number);
+
         // Mark PR as merged immediately
         setMergedPRs(prev => new Set(prev.add(pr.number)));
+
         // Set this as the last merged PR (for loading indicator)
         setLastMergedPR(pr.number);
-        // Refresh Jira issues to get updated status
-        setTimeout(() => refreshJiraIssues(), 2000); // Wait 2 seconds for webhook to process
+
+        // Refresh only this PR's Jira issue to get updated status
+        const jiraKey = extractJiraKey(pr);
+        if (jiraKey) {
+          setTimeout(() => refreshJiraIssue(jiraKey), 2000); // Wait 2 seconds for webhook to process
+        }
+
         // Clear loading state after some time
         setTimeout(() => setLastMergedPR(null), 15000); // Clear after 15 seconds
-        // Notify parent component about merge completion
-        onMergeComplete?.();
-        onJiraRefreshNeeded?.();
+
+        // Refresh all repos to update mergeable status of other PRs
+        if (onReposUpdate) {
+          setTimeout(async () => {
+            try {
+              console.log('Refreshing all repos to check for new merge conflicts...');
+              const reposResponse = await getGithubRepos();
+              if (reposResponse.success) {
+                onReposUpdate(reposResponse.data);
+              }
+            } catch (error) {
+              console.error('Error refreshing repos after merge:', error);
+            }
+          }, 3000); // Wait 3 seconds for GitHub to process the merge
+        }
       } else {
         console.error('Failed to merge PR:', response.error);
       }
@@ -94,12 +122,13 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo, onMergeComplete, onJiraRefres
       setMergingPRs(prev => {
         const newSet = new Set(prev);
         newSet.delete(pr.number);
+
         return newSet;
       });
     }
   };
 
-  // Show repo if it has any PRs
+  // No PRs to show
   if (!visiblePRs || visiblePRs.length === 0) {
     return null;
   }
@@ -110,137 +139,98 @@ const RepoItem: React.FC<RepoItemProps> = ({ repo, onMergeComplete, onJiraRefres
         <Link href={repo.html_url} openNewTab>
           <Strong>{repo.name}</Strong>
         </Link>
-        {repo.language && <> <Lozenge appearance="new">{repo.language}</Lozenge></>}{repo.description && ` - ${repo.description}`}
+        {repo.language && <> <Lozenge
+            appearance="new">{repo.language}</Lozenge></>}{repo.description && ` - ${repo.description}`}
       </Text>
-      
+
       <Box paddingInlineStart="space.200" paddingBlockStart="space.050">
         <Text size="small">Pull Requests:</Text>
         <Box paddingBlockStart="space.100">
           <Stack space="space.050">
-          {visiblePRs.map((pr: any) => {
-            const isMergeable = pr.mergeable === true && pr.mergeable_state !== 'dirty';
-            const isCalculating = pr.mergeable === null;
-            const isLoading = mergingPRs.has(pr.number);
-            const isMerged = pr.merged || mergedPRs.has(pr.number);
-            
-            // Debug logging
-            console.log(`PR #${pr.number}: mergeable=${pr.mergeable}, state=${pr.mergeable_state}, merged=${pr.merged}`);
-            
-            const jiraKey = extractJiraKey(pr);
-            const jiraIssue = jiraKey ? jiraIssues.get(jiraKey) : null;
-            const isLastMerged = lastMergedPR === pr.number;
-            
-            return (
-            <Inline key={pr.id} space="space.100" alignBlock="center" shouldWrap>
-              <Button
-                spacing="compact"
-                appearance={isMerged ? "primary" : isMergeable ? "primary" : isCalculating ? "default" : "warning"}
-                onClick={() => handleMergePR(pr)}
-                isDisabled={isLoading || !isMergeable || isMerged}
-              >
-                {isLoading ? 'Merging...' : isMerged ? 'Merged' : isMergeable ? 'Merge' : isCalculating ? 'Calculating...' : 'Conflicts'}
-              </Button>
-              <Link href={pr.html_url} openNewTab>
-                {pr.title}
-              </Link>
-              <Link href={`${repo.html_url}/tree/${pr.head?.ref || 'main'}`} openNewTab>
-                <Code>{pr.head?.ref || 'unknown'}</Code>
-              </Link>
-              <Text size="small">→</Text>
-              <Link href={`${repo.html_url}/tree/${pr.base?.ref || 'main'}`} openNewTab>
-                <Code>{pr.base?.ref || 'unknown'}</Code>
-              </Link>
-              {jiraKey && (
-                <>
-                  {jiraIssue && (
+            {visiblePRs.map((pr: any) => {
+              const isMergeable = pr.mergeable === true && pr.mergeable_state !== 'dirty';
+              const isCalculating = pr.mergeable === null;
+              const isLoading = mergingPRs.has(pr.number);
+              const isMerged = pr.merged || mergedPRs.has(pr.number);
+
+              const jiraKey = extractJiraKey(pr);
+              const jiraIssue = jiraKey ? jiraIssues.get(jiraKey) : null;
+              const isLastMerged = lastMergedPR === pr.number;
+
+              return (
+                <Inline key={pr.id} space="space.100" alignBlock="center" shouldWrap>
+                  <LoadingButton
+                    isLoading={isLoading}
+                    spacing="compact"
+                    appearance={isMerged ? "primary" : isMergeable ? "primary" : isCalculating ? "default" : "warning"}
+                    onClick={() => handleMergePR(pr)}
+                    isDisabled={isLoading || !isMergeable || isMerged}
+                  >
+                    {isMerged ? 'Merged' : isMergeable ? 'Merge' : isCalculating ? 'Calculating...' : 'Conflicts'}
+                  </LoadingButton>
+                  <Link href={pr.html_url} openNewTab>
+                    {pr.title}
+                  </Link>
+                  <Link href={`${repo.html_url}/tree/${pr.head?.ref || 'main'}`} openNewTab>
+                    <Code>{pr.head?.ref || 'unknown'}</Code>
+                  </Link>
+                  <Text size="small">→</Text>
+                  <Link href={`${repo.html_url}/tree/${pr.base?.ref || 'main'}`} openNewTab>
+                    <Code>{pr.base?.ref || 'unknown'}</Code>
+                  </Link>
+                  {jiraKey && (
                     <>
-                      <Lozenge appearance="default">
-                        {jiraIssue.fields?.issuetype?.name || 'Unknown'}
-                      </Lozenge>
-                      <Text size="small">
-                        <Strong>{jiraKey}</Strong>
-                      </Text>
-                      <Text size="small">
-                        {jiraIssue.fields?.summary || 'No description'}
-                      </Text>
-                      <Lozenge 
-                        appearance={
-                          isLastMerged ? 'default' :
-                          jiraIssue.fields?.status?.name?.toLowerCase() === 'to do' ? 'new' :
-                          jiraIssue.fields?.status?.name?.toLowerCase() === 'in progress' ? 'inprogress' :
-                          jiraIssue.fields?.status?.name?.toLowerCase() === 'done' ? 'success' :
-                          'default'
-                        }
-                      >
-                        {isLastMerged ? 'Loading...' : (jiraIssue.fields?.status?.name || 'Unknown')}
-                      </Lozenge>
+                      {jiraIssue && (
+                        <>
+                          <Lozenge appearance="default">
+                            {jiraIssue.fields?.issuetype?.name || 'Unknown'}
+                          </Lozenge>
+                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                          <Text size="small">
+                            {jiraIssue.fields?.summary || 'No description'}
+                          </Text>
+                          <Lozenge
+                            appearance={
+                              isLastMerged ? 'default' :
+                                jiraIssue.fields?.status?.name?.toLowerCase() === 'to do' ? 'new' :
+                                  jiraIssue.fields?.status?.name?.toLowerCase() === 'in progress' ? 'inprogress' :
+                                    jiraIssue.fields?.status?.name?.toLowerCase() === 'done' ? 'success' :
+                                      'default'
+                            }
+                          >
+                            {isLastMerged ? 'Loading...' : (jiraIssue.fields?.status?.name || 'Unknown')}
+                          </Lozenge>
+                        </>
+                      )}
+                      {jiraIssues.has(jiraKey) && jiraIssue === null && (
+                        <>
+                          <Lozenge appearance="removed">Unknown</Lozenge>
+                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                          <Text size="small">Issue not found</Text>
+                          <Lozenge appearance="removed">Unknown</Lozenge>
+                        </>
+                      )}
+                      {!jiraIssues.has(jiraKey) && (
+                        <>
+                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                          <Text size="small">Loading description...</Text>
+                          <Lozenge appearance="default">Loading...</Lozenge>
+                        </>
+                      )}
                     </>
                   )}
-                  {!jiraIssue && (
-                    <>
-                      <Text size="small">
-                        <Strong>{jiraKey}</Strong>
-                      </Text>
-                      <Text size="small">Loading description...</Text>
-                      <Lozenge appearance="default">Loading...</Lozenge>
-                    </>
-                  )}
-                </>
-              )}
-            </Inline>
-            );
-          })}
+                </Inline>
+              );
+            })}
           </Stack>
         </Box>
       </Box>
-      
+
     </Box>
   );
 };
 
-export const GithubRepos: React.FC<GithubReposProps> = ({ githubRepos, onReposUpdate }) => {
-  const [lastMergeTime, setLastMergeTime] = useState<number | null>(null);
-  const [needsJiraRefresh, setNeedsJiraRefresh] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!githubRepos || !onReposUpdate) return;
-
-    // Check if any PRs are in calculating state
-    const hasCalculatingPRs = Array.isArray(githubRepos) && githubRepos.some((repo: any) =>
-      repo.pullRequests && repo.pullRequests.some((pr: any) => pr.mergeable === null)
-    );
-
-    // Check if we should poll due to recent merge activity (within last 30 seconds)
-    const hasRecentMerge = lastMergeTime && (Date.now() - lastMergeTime < 30000);
-
-    if (!hasCalculatingPRs && !hasRecentMerge && !needsJiraRefresh) return;
-
-    // Set up polling for calculating PRs
-    const interval = setInterval(async () => {
-      try {
-        console.log('Polling for updated PR and Jira status...');
-        const response = await getGithubRepos();
-        if (response.success) {
-          onReposUpdate(response.data);
-          // Reset Jira refresh flag after successful update
-          setNeedsJiraRefresh(false);
-        }
-      } catch (error) {
-        console.error('Error polling PR status:', error);
-      }
-    }, 10000); // 10 seconds
-
-    return () => clearInterval(interval);
-  }, [githubRepos, onReposUpdate, lastMergeTime, needsJiraRefresh]);
-
-  const handleMergeComplete = () => {
-    setLastMergeTime(Date.now());
-  };
-
-  const handleJiraRefreshNeeded = () => {
-    setNeedsJiraRefresh(true);
-  };
-
+export const GithubRepos: React.FC<GithubReposProps> = ({githubRepos, onReposUpdate}) => {
   if (!githubRepos) {
     return null;
   }
@@ -258,11 +248,10 @@ export const GithubRepos: React.FC<GithubReposProps> = ({ githubRepos, onReposUp
       <Box>
         <Text as="strong">GitHub Repositories:</Text>
         {githubRepos.map((repo: any, index: number) => (
-          <RepoItem 
-            key={repo.id || index} 
-            repo={repo} 
-            onMergeComplete={handleMergeComplete}
-            onJiraRefreshNeeded={handleJiraRefreshNeeded}
+          <RepoItem
+            key={repo.id || index}
+            repo={repo}
+            onReposUpdate={onReposUpdate}
           />
         ))}
       </Box>

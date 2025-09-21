@@ -7,7 +7,7 @@ export const AdminModule = () => {
   const [accessTokenValue, setAccessTokenValue] = useState<string>('');
   const [accessTokenValidationError, setAccessTokenValidationError] = useState<string | null>(null);
   const [isSavingAccessTokenLoading, setSavingAccessTokenLoading] = useState(false);
-  const [isLoadingAccessToken, setIsLoadingAccessToken] = useState(false);
+  const [isAccessTokenLoading, setIsAccessTokenLoading] = useState(false);
   const [loadedAccessToken, setLoadedAccessToken] = useState<string | null>(null);
   const [isGithubReposLoading, setIsGithubReposLoading] = useState(false);
   const [githubRepos, setGithubRepos] = useState<any>(null);
@@ -15,6 +15,7 @@ export const AdminModule = () => {
   const handleChangeAccessTokenValue = (event: any) => {
     const value = event.target.value;
     setAccessTokenValue(value);
+
     // Clear validation error when user starts typing
     if (accessTokenValidationError) {
       setAccessTokenValidationError(null);
@@ -28,11 +29,13 @@ export const AdminModule = () => {
     if (!accessTokenValue || accessTokenValue.trim() === '') {
       setAccessTokenValidationError("This field is required");
       setSavingAccessTokenLoading(false);
+
       return;
     }
 
     try {
       await saveAccessToken("access-token-field", accessTokenValue!);
+
       // Clear the input field and loaded token after successful save
       setAccessTokenValue("");
       setLoadedAccessToken("");
@@ -45,7 +48,8 @@ export const AdminModule = () => {
   }
 
   const handleLoadAccessToken = async () => {
-    setIsLoadingAccessToken(true);
+    setAccessTokenValidationError(null);
+    setIsAccessTokenLoading(true);
 
     try {
       const tokenResult = await loadAccessToken("access-token-field");
@@ -59,11 +63,12 @@ export const AdminModule = () => {
       console.error(e);
       setLoadedAccessToken("Error loading");
     } finally {
-      setIsLoadingAccessToken(false);
+      setIsAccessTokenLoading(false);
     }
   }
 
   const handleGetGithubRepos = async () => {
+    setAccessTokenValidationError(null);
     setIsGithubReposLoading(true);
     setGithubRepos(null);
 
@@ -104,7 +109,7 @@ export const AdminModule = () => {
           <Box paddingBlockStart="space.300">
             <LoadingButton
               onClick={handleLoadAccessToken}
-              isLoading={isLoadingAccessToken}
+              isLoading={isAccessTokenLoading}
             >
               Load Access Token
             </LoadingButton>
@@ -125,8 +130,8 @@ export const AdminModule = () => {
 
       <Box paddingBlockStart={'space.300'} paddingBlockEnd={'space.300'}>
         <LoadingButton appearance="primary"
-          isLoading={isGithubReposLoading}
-          onClick={() => handleGetGithubRepos()}
+                       isLoading={isGithubReposLoading}
+                       onClick={() => handleGetGithubRepos()}
         >
           Github Repositories
         </LoadingButton>

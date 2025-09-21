@@ -3,7 +3,26 @@ import api, {route} from "@forge/api";
 export const getJiraIssue = async (key: string) => {
   try {
     const response = await api.asApp().requestJira(route`/rest/api/3/issue/${key}`);
+    
+    // Check if the response indicates the issue was not found
+    if (!response.ok) {
+      console.error(`Jira API returned status ${response.status} for issue ${key}`);
+      return {
+        success: false,
+        error: `Jira issue ${key} not found (status: ${response.status})`
+      };
+    }
+
     const jsonData = await response.json();
+
+    // Additional check: verify the response contains valid issue data
+    if (!jsonData || !jsonData.key) {
+      console.error(`Invalid response data for Jira issue ${key}:`, jsonData);
+      return {
+        success: false,
+        error: `Invalid response data for Jira issue ${key}`
+      };
+    }
 
     return {
       success: true,
@@ -29,6 +48,7 @@ export const changeJiraIssueStatusToDone = async (key: string) => {
     }
 
     console.log('Jira issue found:', jiraIssueResult.data.key);
+    console.log('jiraIssueResult.success', jiraIssueResult.success);
 
     // Get available transitions using app context
     const transitionsRes = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/transitions`);
