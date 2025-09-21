@@ -1,6 +1,58 @@
-import {Box, Code, Inline, Link, LoadingButton, Lozenge, Stack, Strong, Text} from '@forge/react';
+import {Box, Code, Inline, Link, LoadingButton, Lozenge, Stack, Strong, Text, xcss} from '@forge/react';
 import {useEffect, useState} from 'react';
 import {getGithubRepos, getJiraIssue, mergePullRequest} from '../services';
+
+// XCSS styles for consistent column widths
+const mergeButtonStyle = xcss({
+  minWidth: '100px',
+  display: 'inline-block',
+});
+
+const prTitleStyle = xcss({
+  minWidth: '300px',
+  maxWidth: '300px',
+  display: 'inline-block',
+});
+
+const branchContainerStyle = xcss({
+  minWidth: '300px',
+  maxWidth: '300px',
+  display: 'inline-block',
+});
+
+const branchFromStyle = xcss({
+  display: 'inline-block',
+});
+
+const arrowStyle = xcss({
+  display: 'inline-block',
+  marginInline: 'space.050',
+});
+
+const branchToStyle = xcss({
+  display: 'inline-block',
+});
+
+const issueTypeStyle = xcss({
+  minWidth: '80px',
+  display: 'inline-block',
+});
+
+const jiraKeyStyle = xcss({
+  minWidth: '100px',
+  display: 'inline-block',
+});
+
+const issueDescriptionStyle = xcss({
+  minWidth: '300px',
+  maxWidth: '300px',
+  display: 'inline-block',
+});
+
+const issueStatusStyle = xcss({
+  minWidth: '100px',
+  display: 'inline-block',
+});
 
 interface GithubReposProps {
   githubRepos?: any;
@@ -158,68 +210,135 @@ const RepoItem: React.FC<RepoItemProps> = ({repo, onReposUpdate}) => {
               const isLastMerged = lastMergedPR === pr.number;
 
               return (
-                <Inline key={pr.id} space="space.100" alignBlock="center" shouldWrap>
-                  <LoadingButton
-                    isLoading={isLoading}
-                    spacing="compact"
-                    appearance={isMerged ? "primary" : isMergeable ? "primary" : isCalculating ? "default" : "warning"}
-                    onClick={() => handleMergePR(pr)}
-                    isDisabled={isLoading || !isMergeable || isMerged}
-                  >
-                    {isMerged ? 'Merged' : isMergeable ? 'Merge' : isCalculating ? 'Calculating...' : 'Conflicts'}
-                  </LoadingButton>
-                  <Link href={pr.html_url} openNewTab>
-                    {pr.title}
-                  </Link>
-                  <Link href={`${repo.html_url}/tree/${pr.head?.ref || 'main'}`} openNewTab>
-                    <Code>{pr.head?.ref || 'unknown'}</Code>
-                  </Link>
-                  <Text size="small">→</Text>
-                  <Link href={`${repo.html_url}/tree/${pr.base?.ref || 'main'}`} openNewTab>
-                    <Code>{pr.base?.ref || 'unknown'}</Code>
-                  </Link>
-                  {jiraKey && (
-                    <>
-                      {jiraIssue && (
-                        <>
-                          <Lozenge appearance="default">
-                            {jiraIssue.fields?.issuetype?.name || 'Unknown'}
-                          </Lozenge>
-                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
-                          <Text size="small">
-                            {jiraIssue.fields?.summary || 'No description'}
-                          </Text>
-                          <Lozenge
-                            appearance={
-                              isLastMerged ? 'default' :
-                                jiraIssue.fields?.status?.name?.toLowerCase() === 'to do' ? 'new' :
-                                  jiraIssue.fields?.status?.name?.toLowerCase() === 'in progress' ? 'inprogress' :
-                                    jiraIssue.fields?.status?.name?.toLowerCase() === 'done' ? 'success' :
-                                      'default'
-                            }
-                          >
-                            {isLastMerged ? 'Loading...' : (jiraIssue.fields?.status?.name || 'Unknown')}
-                          </Lozenge>
-                        </>
-                      )}
-                      {jiraIssues.has(jiraKey) && jiraIssue === null && (
-                        <>
-                          <Lozenge appearance="removed">Unknown</Lozenge>
-                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
-                          <Text size="small">Issue not found</Text>
-                          <Lozenge appearance="removed">Unknown</Lozenge>
-                        </>
-                      )}
-                      {!jiraIssues.has(jiraKey) && (
-                        <>
-                          <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
-                          <Text size="small">Loading description...</Text>
-                          <Lozenge appearance="default">Loading...</Lozenge>
-                        </>
-                      )}
-                    </>
-                  )}
-                </Inline>
+                <Box key={pr.id} paddingBlockStart="space.050">
+                  <Inline space="space.100" alignBlock="center" shouldWrap>
+                    {/* Merge Button - Fixed width */}
+                    <Box xcss={mergeButtonStyle}>
+                      <LoadingButton
+                        isLoading={isLoading}
+                        spacing="compact"
+                        appearance={isMerged ? "primary" : isMergeable ? "primary" : isCalculating ? "default" : "warning"}
+                        onClick={() => handleMergePR(pr)}
+                        isDisabled={isLoading || !isMergeable || isMerged}
+                      >
+                        {isMerged ? 'Merged' : isMergeable ? 'Merge' : isCalculating ? 'Waiting...' : 'Conflicts'}
+                      </LoadingButton>
+                    </Box>
+                    
+                    {/* PR Title - Flexible width */}
+                    <Box xcss={prTitleStyle}>
+                      <Link href={pr.html_url} openNewTab>
+                        {pr.title}
+                      </Link>
+                    </Box>
+                    
+                    {/* Branch Container - Fixed width 300px */}
+                    <Box xcss={branchContainerStyle}>
+                      <Box xcss={branchFromStyle}>
+                        <Link href={`${repo.html_url}/tree/${pr.head?.ref || 'main'}`} openNewTab>
+                          <Code>{pr.head?.ref || 'unknown'}</Code>
+                        </Link>
+                      </Box>
+                      <Box xcss={arrowStyle}>
+                        <Text size="small">→</Text>
+                      </Box>
+                      <Box xcss={branchToStyle}>
+                        <Link href={`${repo.html_url}/tree/${pr.base?.ref || 'main'}`} openNewTab>
+                          <Code>{pr.base?.ref || 'unknown'}</Code>
+                        </Link>
+                      </Box>
+                    </Box>
+                    
+                    {/* Jira Issue Elements */}
+                    {jiraKey && (
+                      <>
+                        {jiraIssue && (
+                          <>
+                            {/* Issue Type - Fixed width */}
+                            <Box xcss={issueTypeStyle}>
+                              <Lozenge appearance="default">
+                                {jiraIssue.fields?.issuetype?.name || 'Unknown'}
+                              </Lozenge>
+                            </Box>
+                            
+                            {/* Jira Key - Fixed width */}
+                            <Box xcss={jiraKeyStyle}>
+                              <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                            </Box>
+                            
+                            {/* Issue Description - Flexible width */}
+                            <Box xcss={issueDescriptionStyle}>
+                              <Text size="small">
+                                {jiraIssue.fields?.summary || 'No description'}
+                              </Text>
+                            </Box>
+                            
+                            {/* Issue Status - Fixed width */}
+                            <Box xcss={issueStatusStyle}>
+                              <Lozenge
+                                appearance={
+                                  isLastMerged ? 'default' :
+                                    jiraIssue.fields?.status?.name?.toLowerCase() === 'to do' ? 'new' :
+                                      jiraIssue.fields?.status?.name?.toLowerCase() === 'in progress' ? 'inprogress' :
+                                        jiraIssue.fields?.status?.name?.toLowerCase() === 'done' ? 'success' :
+                                          'default'
+                                }
+                              >
+                                {isLastMerged ? 'Loading...' : (jiraIssue.fields?.status?.name || 'Unknown')}
+                              </Lozenge>
+                            </Box>
+                          </>
+                        )}
+                        {jiraIssues.has(jiraKey) && jiraIssue === null && (
+                          <>
+                            {/* Issue Type - Not Found */}
+                            <Box xcss={issueTypeStyle}>
+                              <Lozenge appearance="removed">Unknown</Lozenge>
+                            </Box>
+                            
+                            {/* Jira Key - Not Found */}
+                            <Box xcss={jiraKeyStyle}>
+                              <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                            </Box>
+                            
+                            {/* Issue Description - Not Found */}
+                            <Box xcss={issueDescriptionStyle}>
+                              <Text size="small">Issue not found</Text>
+                            </Box>
+                            
+                            {/* Issue Status - Not Found */}
+                            <Box xcss={issueStatusStyle}>
+                              <Lozenge appearance="removed">Unknown</Lozenge>
+                            </Box>
+                          </>
+                        )}
+                        {!jiraIssues.has(jiraKey) && (
+                          <>
+                            {/* Issue Type - Loading */}
+                            <Box xcss={issueTypeStyle}>
+                              <Lozenge appearance="default">Loading...</Lozenge>
+                            </Box>
+                            
+                            {/* Jira Key - Loading */}
+                            <Box xcss={jiraKeyStyle}>
+                              <Lozenge appearance="inprogress" isBold>{jiraKey}</Lozenge>
+                            </Box>
+                            
+                            {/* Issue Description - Loading */}
+                            <Box xcss={issueDescriptionStyle}>
+                              <Text size="small">Loading description...</Text>
+                            </Box>
+                            
+                            {/* Issue Status - Loading */}
+                            <Box xcss={issueStatusStyle}>
+                              <Lozenge appearance="default">Loading...</Lozenge>
+                            </Box>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </Inline>
+                </Box>
               );
             })}
           </Stack>
