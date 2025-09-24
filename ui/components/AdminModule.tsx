@@ -49,6 +49,7 @@ export const AdminModule = () => {
 
   const handleLoadAccessToken = async () => {
     setAccessTokenValidationError(null);
+    setAccessTokenValue('')
     setIsAccessTokenLoading(true);
 
     try {
