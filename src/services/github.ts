@@ -1,8 +1,7 @@
-import { Request } from "@forge/resolver";
-import { Octokit } from "@octokit/core";
-import { loadAccessToken } from "./storage";
+import {Octokit} from "@octokit/core";
+import {loadAccessToken} from "./storage";
 
-export const getGithubRepos = async (req: Request) => {
+export const getGithubRepos = async () => {
   const accessToken = await loadAccessToken("access-token-field");
   
   if (!accessToken.success || !accessToken.data || typeof accessToken.data !== 'string') {

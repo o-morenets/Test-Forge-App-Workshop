@@ -17,8 +17,8 @@ resolver.define("loadAccessToken", async (req) => {
   return loadAccessToken(key);
 });
 
-resolver.define("getGithubRepos", async (req) => {
-  return getGithubRepos(req);
+resolver.define("getGithubRepos", async () => {
+  return getGithubRepos();
 });
 
 resolver.define("mergePullRequest", async (req) => {

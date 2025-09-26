@@ -6,6 +6,11 @@ modules:
         function: resolver
       render: native
       title: Admin Page
+      pages:
+        - title: Auth page
+          route: auth
+        - title: Github Repos page
+          route: repos
   function:
     - key: resolver
       handler: index.handler

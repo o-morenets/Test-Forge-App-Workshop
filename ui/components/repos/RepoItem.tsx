@@ -1,6 +1,6 @@
 import {Box, Code, Inline, Link, LoadingButton, Lozenge, Stack, Strong, Text, xcss} from '@forge/react';
-import {useEffect, useState} from 'react';
-import {getGithubRepos, getJiraIssue, mergePullRequest} from '../services';
+import React, {useEffect, useState} from 'react';
+import {getGithubRepos, getJiraIssue, mergePullRequest} from '../../services';
 
 // XCSS styles for consistent column widths
 const mergeButtonStyle = xcss({
@@ -54,17 +54,12 @@ const issueStatusStyle = xcss({
   display: 'inline-block',
 });
 
-interface GithubReposProps {
-  githubRepos?: any;
-  onReposUpdate?: (repos: any) => void;
-}
-
-interface RepoItemProps {
+export interface RepoItemProps {
   repo: any;
   onReposUpdate?: (repos: any) => void;
 }
 
-const RepoItem: React.FC<RepoItemProps> = ({repo, onReposUpdate}) => {
+export const RepoItem: React.FC<RepoItemProps> = ({repo, onReposUpdate}) => {
   const [mergingPRs, setMergingPRs] = useState<Set<number>>(new Set());
   const [mergedPRs, setMergedPRs] = useState<Set<number>>(new Set());
   const [lastMergedPR, setLastMergedPR] = useState<number | null>(null);
@@ -344,42 +339,6 @@ const RepoItem: React.FC<RepoItemProps> = ({repo, onReposUpdate}) => {
           </Stack>
         </Box>
       </Box>
-
-    </Box>
-  );
-};
-
-export const GithubRepos: React.FC<GithubReposProps> = ({githubRepos, onReposUpdate}) => {
-  if (!githubRepos) {
-    return null;
-  }
-
-  if (Array.isArray(githubRepos) && githubRepos.length === 0) {
-    return (
-      <Box>
-        <Text>No repositories found.</Text>
-      </Box>
-    );
-  }
-
-  if (Array.isArray(githubRepos)) {
-    return (
-      <Box>
-        <Text as="strong">GitHub Repositories:</Text>
-        {githubRepos.map((repo: any, index: number) => (
-          <RepoItem
-            key={repo.id || index}
-            repo={repo}
-            onReposUpdate={onReposUpdate}
-          />
-        ))}
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      <Text>Error loading repositories.</Text>
     </Box>
   );
 };

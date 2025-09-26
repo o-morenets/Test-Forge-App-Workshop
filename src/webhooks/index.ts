@@ -1,6 +1,6 @@
 import {changeJiraIssueStatusToDone} from "../services/jira";
 
-export const webhookHandler = async (event: any, context: any) => {
+export const webhookHandler = async (event: any) => {
   const payload = JSON.parse(event.body);
 
   if (payload.pull_request && payload.action === 'closed' && payload.pull_request.merged_at) {
